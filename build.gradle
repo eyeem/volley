@@ -1,8 +1,26 @@
+task wrapper(type: Wrapper) {
+    gradleVersion = '1.8'
+}
+
+
+buildscript {
+    repositories {
+        maven {
+            url 'https://oss.sonatype.org/content/repositories/snapshots/'
+        }
+        mavenCentral()
+        mavenLocal()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:0.6.+'
+    }
+}
+
 apply plugin: 'android-library'
 
 android {
     compileSdkVersion 17
-    buildToolsVersion = 17
+    buildToolsVersion '18.0.1'
 
     sourceSets {
         defaultConfig {
@@ -25,6 +43,67 @@ android {
             res.srcDirs       = ["tests/res"]
             resources.srcDirs = ["tests/src"]
             java.srcDirs      = ["tests/src"]
+        }
+    }
+}
+
+// SONATYPE DEPLOYMENT
+// in order to deploy, run: gradle uploadArchives
+
+apply plugin: 'maven'
+apply plugin: 'signing'
+
+version = "0.1.0-SNAPSHOT"
+group = "com.eyeem.volley"
+
+configurations {
+    archives {
+        extendsFrom configurations.default
+    }
+}
+
+signing {
+    required { has("release") && gradle.taskGraph.hasTask("uploadArchives") }
+    sign configurations.archives
+}
+
+uploadArchives {
+    configuration = configurations.archives
+    repositories.mavenDeployer {
+        beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+
+        repository(url: sonatypeRepo) {
+            authentication(userName: sonatypeUsername,
+                    password: sonatypePassword)
+        }
+
+        pom.project {
+            name 'Volley'
+            packaging 'aar'
+            description 'Google\'s Volley'
+            url 'https://github.com/eyeem/volley'
+
+            scm {
+                url 'scm:git@github.com:eyeem/volley.git'
+                connection 'scm:git@github.com:eyeem/volley.git'
+                developerConnection 'scm:git@github.com:eyeem/volley.git'
+            }
+
+            licenses {
+                license {
+                    name 'The Apache Software License, Version 2.0'
+                    url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    distribution 'repo'
+                }
+            }
+
+            developers {
+                developer {
+                    id 'vishna'
+                    name 'Lukasz Wisniewski'
+                    email 'lukasz@eyeem.com'
+                }
+            }
         }
     }
 }
